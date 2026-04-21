@@ -1,5 +1,6 @@
-# database.py - COMPLETE ADVANCED ASYNC DATABASE LAYER
-# Render Ready | All Tables + Functions | Owner: @Nullprotocol_X
+# database.py - FINAL ADVANCED ASYNC SQLITE DATABASE
+# 100% Working on Render Free Plan | All Tables & Functions
+# Owner: @Nullprotocol_X | ID: 8104850843
 
 import sqlite3
 import secrets
@@ -159,12 +160,14 @@ def init_db_sync():
             ''', (api_type, plan_name, details['credits'], details['days']))
 
     # Ensure owner is marked as owner
+    sync_c.execute("INSERT OR IGNORE INTO users (user_id, joined_at, credits, is_owner) VALUES (?, ?, ?, ?)",
+                   (OWNER_ID, datetime.now().isoformat(), 0, 1))
     sync_c.execute("UPDATE users SET is_owner = 1 WHERE user_id = ?", (OWNER_ID,))
     sync_conn.commit()
 
     print("✅ Database tables initialized and owner set.")
 
-# Call init
+# Call init at module load
 init_db_sync()
 
 # ============================================
