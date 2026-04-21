@@ -1,4 +1,5 @@
-# keyboards.py - PROFESSIONAL INLINE KEYBOARDS (NULL PROTOCOL MULTI-API BOT)
+# keyboards.py - FINAL PRODUCTION READY KEYBOARDS
+# 100% Working | All Inline Keyboards for NULL PROTOCOL BOT
 # Owner: @Nullprotocol_X | ID: 8104850843
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -61,9 +62,7 @@ def admin_panel_keyboard() -> InlineKeyboardMarkup:
 def api_selection_keyboard(page: int = 0, per_page: int = 6) -> InlineKeyboardMarkup:
     """
     Paginated keyboard showing all enabled APIs for key generation.
-    Returns list of API types with their display names.
     """
-    # Filter only enabled APIs from config
     enabled_apis = [(key, cfg['name']) for key, cfg in API_ENDPOINTS.items() if cfg.get('enabled', True)]
     total = len(enabled_apis)
     total_pages = (total + per_page - 1) // per_page if total > 0 else 1
@@ -76,7 +75,6 @@ def api_selection_keyboard(page: int = 0, per_page: int = 6) -> InlineKeyboardMa
     for api_type, display_name in current_apis:
         keyboard.append([InlineKeyboardButton(display_name, callback_data=f"gen_{api_type}")])
 
-    # Navigation row
     nav_row = []
     if page > 0:
         nav_row.append(InlineKeyboardButton("◀️ Prev", callback_data=f"apipage_{page-1}"))
@@ -128,14 +126,12 @@ def user_management_keyboard(users: list, page: int = 0, total_pages: int = 1) -
         uid, username, first_name, banned, premium, credits = user
         name = first_name or str(uid)
         status = "🚫" if banned else ("⭐" if premium else "✅")
-        # Row 1: User info button (for detail view)
         keyboard.append([
             InlineKeyboardButton(
                 f"{status} {name} | 💰{credits}",
                 callback_data=f"userdetail_{uid}"
             )
         ])
-        # Row 2: Action buttons
         action_row = []
         if banned:
             action_row.append(InlineKeyboardButton("✅ Unban", callback_data=f"toggle_ban_{uid}"))
@@ -147,12 +143,10 @@ def user_management_keyboard(users: list, page: int = 0, total_pages: int = 1) -
         else:
             action_row.append(InlineKeyboardButton("⭐ Make Premium", callback_data=f"make_premium_{uid}"))
         keyboard.append(action_row)
-        # Row 3: Delete user
         keyboard.append([
             InlineKeyboardButton("🗑️ Permanent Delete", callback_data=f"permdelete_{uid}")
         ])
 
-    # Navigation
     nav_row = []
     if page > 0:
         nav_row.append(InlineKeyboardButton("◀️ Prev", callback_data=f"userlist_page_{page-1}"))
@@ -215,7 +209,6 @@ def api_keys_list_keyboard(keys: list, page: int = 0, total_pages: int = 1) -> I
                 callback_data=f"keydetail_{key[:20]}"
             )
         ])
-        # Admin actions: Edit Expiry, Deactivate
         keyboard.append([
             InlineKeyboardButton("📅 Edit Expiry", callback_data=f"editkeyexp_{key[:20]}"),
             InlineKeyboardButton("🚫 Deactivate", callback_data=f"deactkey_{key[:20]}")
@@ -275,7 +268,7 @@ def pricing_api_selection_keyboard() -> InlineKeyboardMarkup:
     """Select API to set pricing."""
     apis = list(API_ENDPOINTS.keys())
     keyboard = []
-    for api_type in apis[:12]:  # Limit to 12 for UI
+    for api_type in apis[:12]:
         name = API_ENDPOINTS[api_type].get('name', api_type)
         keyboard.append([InlineKeyboardButton(name, callback_data=f"setprice_{api_type}")])
     keyboard.append([back_button("menu_admin")])
@@ -297,7 +290,7 @@ def pending_purchases_keyboard(requests: list) -> InlineKeyboardMarkup:
     requests: list of (request_id, user_id, credits_amount, transaction_id, created_at)
     """
     keyboard = []
-    for req in requests[:8]:  # Max 8 to avoid overflow
+    for req in requests[:8]:
         req_id, uid, credits, txn_id, created = req
         short_txn = txn_id[:10] + "..."
         keyboard.append([
@@ -378,13 +371,5 @@ def confirm_delete_keyboard(user_id: int) -> InlineKeyboardMarkup:
 def back_to_admin_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([[back_button("menu_admin")]])
 
-# ============================================
-# GENERIC PAGINATION HELPER (Optional)
-# ============================================
-def pagination_row(prefix: str, page: int, total_pages: int) -> list:
-    row = []
-    if page > 0:
-        row.append(InlineKeyboardButton("◀️", callback_data=f"{prefix}_{page-1}"))
-    if page < total_pages - 1:
-        row.append(InlineKeyboardButton("▶️", callback_data=f"{prefix}_{page+1}"))
-    return row
+def back_to_main_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([[back_button("menu_start")]])
