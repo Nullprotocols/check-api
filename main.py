@@ -94,7 +94,11 @@ async def set_cached(key: str, data: str):
 # ============================================
 @app.route('/health')
 async def health():
-    return jsonify({"status": "ok", "timestamp": datetime.now().isoformat()})
+    return jsonify({
+        "status": "ok",
+        "timestamp": datetime.now().isoformat(),
+        "bot": application.bot.username if application.bot else "not_initialized"
+    })
 
 @app.route('/api/v1/<api_type>')
 async def proxy_api(api_type):
@@ -688,7 +692,15 @@ async def edit_key_expiry_prompt(update: Update, context: ContextTypes.DEFAULT_T
 async def deactivate_key(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     key_prefix = query.data.replace("deactkey_", "")
-    await query.answer("Key deactivated (feature simplified).", show_alert=True)
+    # Find full key and deactivate
+    async with aiosqlite.connect(DB_FILE) as db:
+        cursor = await db.execute("SELECT key FROM api_keys WHERE key LIKE ?", (key_prefix + '%',))
+        row = await cursor.fetchone()
+        if row:
+            await deactivate_api_key(row[0])
+            await query.answer("Key deactivated.", show_alert=True)
+        else:
+            await query.answer("Key not found.", show_alert=True)
 
 # ============================================
 # ADMIN: API Status
@@ -860,14 +872,12 @@ async def handle_broadcast_media(update: Update, context: ContextTypes.DEFAULT_T
     await update.message.reply_text(f"✅ Broadcast sent to {success} users.")
 
 # ============================================
-# TEXT INPUT HANDLER (States)
+# TEXT INPUT HANDLER (States) - Improved
 # ============================================
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text.strip()
     state = context.user_data.get('admin_state')
-    if not state and not context.user_data.get('awaiting_redeem') and not context.user_data.get('awaiting_credit_amount_for_purchase'):
-        return
 
     # Redeem code
     if context.user_data.get('awaiting_redeem'):
@@ -900,7 +910,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(user_id):
         return
 
-    # Admin states
+    # Admin states with better error handling
     if state == 'awaiting_user_for_credits':
         try:
             uid = int(text)
@@ -913,9 +923,12 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif state == 'awaiting_credit_amount':
         try:
             amount = int(text)
-            uid = context.user_data.pop('target_credit_user')
-            await add_credits(uid, amount)
-            await update.message.reply_text(f"✅ Added {amount} credits to {uid}.")
+            uid = context.user_data.pop('target_credit_user', None)
+            if uid:
+                await add_credits(uid, amount)
+                await update.message.reply_text(f"✅ Added {amount} credits to {uid}.")
+            else:
+                await update.message.reply_text("❌ Something went wrong. Target user not found.")
             context.user_data.pop('admin_state', None)
         except:
             await update.message.reply_text("Invalid amount.")
@@ -930,20 +943,22 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif state == 'awaiting_redeem_maxuses':
         try:
             max_uses = int(text)
-            credits = context.user_data['redeem_credits']
+            credits = context.user_data.get('redeem_credits')
+            if credits is None:
+                raise ValueError("Credits not set")
             code = secrets.token_hex(4).upper()
             await create_redeem_code(code, credits, user_id, max_uses)
             await update.message.reply_text(f"✅ Code: <code>{code}</code>\nCredits: {credits}\nUses: {max_uses}", parse_mode='HTML')
             context.user_data.pop('admin_state', None)
-        except:
-            await update.message.reply_text("Invalid number.")
+        except Exception as e:
+            await update.message.reply_text(f"Invalid number or missing data. {e}")
     elif state == 'awaiting_bulkdm_ids':
         ids = [int(x.strip()) for x in text.replace('\n', ',').split(',') if x.strip().isdigit()]
         context.user_data['bulk_ids'] = ids
         context.user_data['admin_state'] = 'awaiting_bulkdm_message'
         await update.message.reply_text(f"Got {len(ids)} IDs. Send message:")
     elif state == 'awaiting_bulkdm_message':
-        ids = context.user_data.pop('bulk_ids')
+        ids = context.user_data.pop('bulk_ids', [])
         success = 0
         for uid in ids:
             try:
@@ -957,16 +972,23 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif state == 'awaiting_new_price':
         try:
             new_price = int(text)
-            api = context.user_data['pricing_api']
-            plan = context.user_data['pricing_plan']
-            await update_api_plan_price(api, plan, new_price)
-            await update.message.reply_text(f"✅ Price updated: {api} {plan} = {new_price} credits.")
+            api = context.user_data.get('pricing_api')
+            plan = context.user_data.get('pricing_plan')
+            if api and plan:
+                await update_api_plan_price(api, plan, new_price)
+                await update.message.reply_text(f"✅ Price updated: {api} {plan} = {new_price} credits.")
+            else:
+                await update.message.reply_text("❌ Missing pricing context.")
             context.user_data.pop('admin_state', None)
         except:
             await update.message.reply_text("Invalid number.")
     elif state == 'awaiting_premium_days':
         days_text = text.lower()
-        uid = context.user_data.pop('target_premium_user')
+        uid = context.user_data.pop('target_premium_user', None)
+        if not uid:
+            await update.message.reply_text("❌ Target user not found.")
+            context.user_data.pop('admin_state', None)
+            return
         if days_text == 'permanent':
             await set_user_premium(uid, days=None)
         else:
@@ -1000,7 +1022,17 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             days = int(text)
             key_prefix = context.user_data.get('editing_key')
-            await update.message.reply_text(f"✅ Key expiry updated (simplified).")
+            if key_prefix:
+                async with aiosqlite.connect(DB_FILE) as db:
+                    cursor = await db.execute("SELECT key FROM api_keys WHERE key LIKE ?", (key_prefix + '%',))
+                    row = await cursor.fetchone()
+                    if row:
+                        await update_key_expiry(row[0], days)
+                        await update.message.reply_text(f"✅ Key expiry updated.")
+                    else:
+                        await update.message.reply_text("❌ Key not found.")
+            else:
+                await update.message.reply_text("❌ No key selected.")
         except:
             await update.message.reply_text("Invalid number.")
         context.user_data.pop('admin_state', None)
@@ -1044,7 +1076,7 @@ async def premium_expiry_task():
             await db.commit()
 
 # ============================================
-# STARTUP & SHUTDOWN
+# STARTUP & SHUTDOWN (Fixed - no polling)
 # ============================================
 async def on_startup():
     global http_session
@@ -1064,8 +1096,7 @@ async def on_startup():
         )
         logger.info(f"Webhook set to {RENDER_EXTERNAL_URL}/webhook")
     else:
-        await application.updater.start_polling()
-        logger.info("Polling started.")
+        logger.info("Webhook mode not enabled. Use webhook or change BOT_MODE.")
     asyncio.create_task(self_ping_task())
     asyncio.create_task(scheduled_backup_task())
     asyncio.create_task(premium_expiry_task())
