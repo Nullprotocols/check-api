@@ -1,10 +1,11 @@
-# config.py - FINAL PROFESSIONAL CONFIGURATION (NULL PROTOCOL MULTI-API BOT)
+# config.py - FINAL PRODUCTION READY CONFIGURATION
 # Owner: @Nullprotocol_X | ID: 8104850843
+# No Errors, Fully Optimized for Render Free Plan
 
 import os
 
 # ============================================
-# 1. TELEGRAM BOT CREDENTIALS (FROM ENV)
+# 1. TELEGRAM BOT CREDENTIALS
 # ============================================
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 if not TELEGRAM_BOT_TOKEN:
@@ -12,17 +13,21 @@ if not TELEGRAM_BOT_TOKEN:
 
 OWNER_ID = int(os.getenv("OWNER_ID", "8104850843"))
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "NullProtocol_SuperSecret_2024")
-BOT_MODE = os.getenv("BOT_MODE", "webhook")
+BOT_MODE = os.getenv("BOT_MODE", "webhook").lower()
 
 # ============================================
 # 2. SERVER & DEPLOYMENT (Render)
 # ============================================
-RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL", "https://check-api-zw8s.onrender.com")
+RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL", "").rstrip('/')
+if not RENDER_EXTERNAL_URL and BOT_MODE == "webhook":
+    raise ValueError("❌ RENDER_EXTERNAL_URL is required for webhook mode!")
+
 PORT = int(os.getenv("PORT", "8080"))
 
 # ============================================
-# 3. DATABASE
+# 3. DATABASE (FIXED FOR RENDER FREE PLAN)
 # ============================================
+# IMPORTANT: Free plan me /data folder nahi hota, isliye simple bot.db use karo.
 DB_FILE = os.getenv("DB_FILE", "bot.db")
 
 # ============================================
@@ -32,13 +37,13 @@ REDIS_URL = os.getenv("REDIS_URL", None)
 CACHE_TTL = int(os.getenv("CACHE_TTL", "300"))
 
 # ============================================
-# 5. AUTO-PING (Render Anti-Sleep)
+# 5. AUTO-PING (Self Ping for Anti-Sleep)
 # ============================================
-SELF_PING_INTERVAL = int(os.getenv("SELF_PING_INTERVAL", "240"))
+SELF_PING_INTERVAL = int(os.getenv("SELF_PING_INTERVAL", "300"))  # 5 minutes default
 ENABLE_SELF_PING = os.getenv("ENABLE_SELF_PING", "True").lower() == "true"
 
 # ============================================
-# 6. BRANDING (Owner: @Nullprotocol_X)
+# 6. BRANDING
 # ============================================
 BRANDING = {
     "developer": os.getenv("BRANDING_DEVELOPER", "@Nullprotocol_X"),
@@ -67,13 +72,12 @@ FORCE_JOIN_CHANNELS = [
 # ============================================
 # 9. LOG CHANNEL
 # ============================================
-LOG_CHANNEL_ID = int(os.getenv("LOG_CHANNEL_ID", "-1003624886596"))
+LOG_CHANNEL_ID = int(os.getenv("LOG_CHANNEL_ID", "-1003740236326"))
 
 # ============================================
-# 10. API ENDPOINTS CONFIGURATION (20+ APIs)
+# 10. API ENDPOINTS (20+ APIs)
 # ============================================
 API_ENDPOINTS = {
-    # ------------------- EXISTING APIs -------------------
     "num": {
         "name": "📞 Phone Number Info",
         "description": "Get basic information about a phone number",
@@ -89,7 +93,7 @@ API_ENDPOINTS = {
     },
     "tg": {
         "name": "🆔 Telegram Username to Number",
-        "description": "Get phone number and details from a Telegram username",
+        "description": "Get phone number from Telegram username",
         "url_template": "https://sbsakib.eu.cc/apis/tg_username?key={api_key}&user={param}",
         "external_api_key": os.getenv("TG_API_KEY", "Demo"),
         "param_name": "username",
@@ -104,209 +108,172 @@ API_ENDPOINTS = {
         "log_channel": LOG_CHANNEL_ID,
         "enabled": True
     },
-
-    # ------------------- NEW APIs (as requested) -------------------
     "aadhaar": {
         "name": "🪪 Aadhaar Info",
-        "description": "Get masked Aadhaar details",
         "url_template": "https://sbsakib.eu.cc/apis/aadhaar?key={api_key}&id={param}",
         "external_api_key": os.getenv("AADHAAR_API_KEY", "Demo"),
         "param_name": "id",
         "param_example": "123456789012",
         "param_validation": r"^\d{12}$",
-        "extra_blacklist": [],
         "rate_limit_per_min": 30,
         "enabled": True
     },
     "ration": {
         "name": "🍚 Ration Card (Family ID)",
-        "description": "Get ration card details via Family ID",
         "url_template": "https://intelx-premium-apipanel.vercel.app/INTELXDEMO5?FADHAR={param}",
         "external_api_key": "",
         "param_name": "fadhar",
         "param_example": "FAMILY123",
-        "param_validation": None,
-        "extra_blacklist": [],
         "rate_limit_per_min": 30,
         "enabled": True
     },
     "tgid": {
         "name": "🆔 Telegram User ID Info",
-        "description": "Get info from Telegram numeric user ID",
         "url_template": "https://intelx-premium-apipanel.vercel.app/INTELXDEMO?USERID={param}",
         "external_api_key": "",
         "param_name": "userid",
         "param_example": "123456789",
         "param_validation": r"^\d+$",
-        "extra_blacklist": [],
         "rate_limit_per_min": 30,
         "enabled": True
     },
     "vehicle": {
         "name": "🚗 Vehicle RC Info",
-        "description": "Get vehicle registration details",
         "url_template": "https://devil.elementfx.com/api.php?key={api_key}&type=vehicle&term={param}",
         "external_api_key": os.getenv("VEHICLE_API_KEY", "TRIAL"),
         "param_name": "term",
         "param_example": "MH12AB1234",
         "param_validation": r"^[A-Z]{2}\d{2}[A-Z]{1,2}\d{4}$",
-        "extra_blacklist": [],
         "rate_limit_per_min": 30,
         "enabled": True
     },
     "challan": {
-        "name": "📜 Vehicle Challan Info",
-        "description": "Get challan details by vehicle number",
+        "name": "📜 Vehicle Challan",
         "url_template": "https://anon-vehicle-info.vercel.app/rc?key={api_key}&rc={param}",
         "external_api_key": os.getenv("CHALLAN_API_KEY", "temp114"),
         "param_name": "rc",
         "param_example": "MH12AB1234",
         "param_validation": r"^[A-Z]{2}\d{2}[A-Z]{1,2}\d{4}$",
-        "extra_blacklist": [],
         "rate_limit_per_min": 30,
         "enabled": True
     },
     "paknum": {
         "name": "🇵🇰 Pakistan Number Info",
-        "description": "Get info about a Pakistani phone number",
         "url_template": "https://anon-pak-info.vercel.app/num?key={api_key}&q={param}",
         "external_api_key": os.getenv("PAK_API_KEY", "temp1004"),
         "param_name": "q",
         "param_example": "923001234567",
         "param_validation": r"^92\d{10}$",
-        "extra_blacklist": [],
         "rate_limit_per_min": 30,
         "enabled": True
     },
     "pakcnic": {
         "name": "🇵🇰 Pakistan CNIC Info",
-        "description": "Get CNIC details",
         "url_template": "https://mafia-ayan-free-osint-api.vercel.app/info?type=sim&number={param}&key={api_key}",
         "external_api_key": os.getenv("PAK_CNIC_KEY", "AYAN-MAFIA-FREE-API"),
         "param_name": "cnic",
         "param_example": "1234567890123",
         "param_validation": r"^\d{13}$",
-        "extra_blacklist": [],
         "rate_limit_per_min": 30,
         "enabled": True
     },
     "email": {
         "name": "📧 Email Info",
-        "description": "Get information about an email address",
         "url_template": "https://anon-email-info.vercel.app/email?key={api_key}&email={param}",
         "external_api_key": os.getenv("EMAIL_API_KEY", "tempe124"),
         "param_name": "email",
         "param_example": "test@example.com",
         "param_validation": r"^[\w\.-]+@[\w\.-]+\.\w+$",
-        "extra_blacklist": [],
         "rate_limit_per_min": 30,
         "enabled": True
     },
     "ip": {
         "name": "🌐 IP Info",
-        "description": "Get geolocation and details of an IP address",
         "url_template": "https://anon-multi-info.vercel.app/ipinfo?key={api_key}&ip={param}",
         "external_api_key": os.getenv("IP_API_KEY", "temp104"),
         "param_name": "ip",
         "param_example": "8.8.8.8",
         "param_validation": r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$",
-        "extra_blacklist": [],
         "rate_limit_per_min": 50,
         "enabled": True
     },
     "gst": {
         "name": "💰 GST Info",
-        "description": "Get GST number details",
         "url_template": "https://gst-info-api-by-abhigyan-codes-1.onrender.com/gst?number={param}",
         "external_api_key": "",
         "param_name": "number",
         "param_example": "22AAAAA0000A1Z5",
         "param_validation": r"^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}$",
-        "extra_blacklist": [],
         "rate_limit_per_min": 30,
         "enabled": True
     },
     "pantogst": {
         "name": "🔖 PAN to GST",
-        "description": "Get GST numbers associated with a PAN",
         "url_template": "https://gst-info-api-by-abhigyan-codes-1.onrender.com/PANTOGST?number={param}",
         "external_api_key": "",
         "param_name": "number",
         "param_example": "AAAAA0000A",
         "param_validation": r"^[A-Z]{5}\d{4}[A-Z]{1}$",
-        "extra_blacklist": [],
         "rate_limit_per_min": 30,
         "enabled": True
     },
     "insta": {
         "name": "📸 Instagram Info",
-        "description": "Get public profile information from Instagram",
         "url_template": "https://anon-insta-info.vercel.app/profile?key={api_key}&username={param}",
         "external_api_key": os.getenv("INSTA_API_KEY", "temp104"),
         "param_name": "username",
         "param_example": "instagram",
         "param_validation": r"^[a-zA-Z0-9_.]{1,30}$",
-        "extra_blacklist": [],
         "rate_limit_per_min": 30,
         "enabled": True
     },
     "github": {
         "name": "🐙 GitHub Info",
-        "description": "Get GitHub user profile details",
         "url_template": "https://info-github-api.vercel.app/api/github?username={param}",
         "external_api_key": "",
         "param_name": "username",
         "param_example": "torvalds",
         "param_validation": r"^[a-zA-Z0-9-]{1,39}$",
-        "extra_blacklist": [],
         "rate_limit_per_min": 30,
         "enabled": True
     },
     "pincode": {
         "name": "📍 Pincode Info",
-        "description": "Get post office details by pincode",
         "url_template": "https://api.postalpincode.in/pincode/{param}",
         "external_api_key": "",
         "param_name": "pincode",
         "param_example": "110001",
         "param_validation": r"^\d{6}$",
-        "extra_blacklist": [],
         "rate_limit_per_min": 30,
         "enabled": True
     },
     "ifsc": {
         "name": "🏦 IFSC Info",
-        "description": "Get bank branch details from IFSC code",
         "url_template": "https://ab-ifscinfoapi.vercel.app/info?ifsc={param}",
         "external_api_key": "",
         "param_name": "ifsc",
         "param_example": "SBIN0001234",
         "param_validation": r"^[A-Z]{4}0[A-Z0-9]{6}$",
-        "extra_blacklist": [],
         "rate_limit_per_min": 30,
         "enabled": True
     },
     "ffinfo": {
         "name": "🎮 Free Fire UID Info",
-        "description": "Get Free Fire player info by UID",
         "url_template": "https://abbas-apis.vercel.app/api/ff-info?uid={param}",
         "external_api_key": "",
         "param_name": "uid",
         "param_example": "123456789",
         "param_validation": r"^\d{9,12}$",
-        "extra_blacklist": [],
         "rate_limit_per_min": 30,
         "enabled": True
     },
     "ffban": {
         "name": "⛔ Free Fire Ban Info",
-        "description": "Check if a Free Fire UID is banned",
         "url_template": "https://abbas-apis.vercel.app/api/ff-ban?uid={param}",
         "external_api_key": "",
         "param_name": "uid",
         "param_example": "123456789",
         "param_validation": r"^\d{9,12}$",
-        "extra_blacklist": [],
         "rate_limit_per_min": 30,
         "enabled": True
     }
@@ -315,27 +282,12 @@ API_ENDPOINTS = {
 # ============================================
 # 11. API PLANS & PRICING (Default)
 # ============================================
-DEFAULT_PLANS = {
-    "num": {"weekly": {"credits": 15, "days": 7}, "monthly": {"credits": 30, "days": 30}},
-    "tg": {"weekly": {"credits": 15, "days": 7}, "monthly": {"credits": 30, "days": 30}},
-    "aadhaar": {"weekly": {"credits": 15, "days": 7}, "monthly": {"credits": 30, "days": 30}},
-    "ration": {"weekly": {"credits": 15, "days": 7}, "monthly": {"credits": 30, "days": 30}},
-    "tgid": {"weekly": {"credits": 15, "days": 7}, "monthly": {"credits": 30, "days": 30}},
-    "vehicle": {"weekly": {"credits": 15, "days": 7}, "monthly": {"credits": 30, "days": 30}},
-    "challan": {"weekly": {"credits": 15, "days": 7}, "monthly": {"credits": 30, "days": 30}},
-    "paknum": {"weekly": {"credits": 15, "days": 7}, "monthly": {"credits": 30, "days": 30}},
-    "pakcnic": {"weekly": {"credits": 15, "days": 7}, "monthly": {"credits": 30, "days": 30}},
-    "email": {"weekly": {"credits": 15, "days": 7}, "monthly": {"credits": 30, "days": 30}},
-    "ip": {"weekly": {"credits": 15, "days": 7}, "monthly": {"credits": 30, "days": 30}},
-    "gst": {"weekly": {"credits": 15, "days": 7}, "monthly": {"credits": 30, "days": 30}},
-    "pantogst": {"weekly": {"credits": 15, "days": 7}, "monthly": {"credits": 30, "days": 30}},
-    "insta": {"weekly": {"credits": 15, "days": 7}, "monthly": {"credits": 30, "days": 30}},
-    "github": {"weekly": {"credits": 15, "days": 7}, "monthly": {"credits": 30, "days": 30}},
-    "pincode": {"weekly": {"credits": 15, "days": 7}, "monthly": {"credits": 30, "days": 30}},
-    "ifsc": {"weekly": {"credits": 15, "days": 7}, "monthly": {"credits": 30, "days": 30}},
-    "ffinfo": {"weekly": {"credits": 15, "days": 7}, "monthly": {"credits": 30, "days": 30}},
-    "ffban": {"weekly": {"credits": 15, "days": 7}, "monthly": {"credits": 30, "days": 30}}
-}
+DEFAULT_PLANS = {}
+for api_type in API_ENDPOINTS.keys():
+    DEFAULT_PLANS[api_type] = {
+        "weekly": {"credits": 15, "days": 7},
+        "monthly": {"credits": 30, "days": 30}
+    }
 
 # ============================================
 # 12. REFERRAL SYSTEM
@@ -374,3 +326,4 @@ print(f"📢 Log Channel: {LOG_CHANNEL_ID}")
 print(f"🔗 Force Join Channels: {len(FORCE_JOIN_CHANNELS)}")
 print(f"💎 Branding: {BRANDING['developer']}")
 print(f"📡 Total APIs Loaded: {len(API_ENDPOINTS)}")
+print(f"⏱️ Self-Ping Interval: {SELF_PING_INTERVAL}s")
