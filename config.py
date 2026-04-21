@@ -1,6 +1,6 @@
 # config.py - FINAL PRODUCTION READY CONFIGURATION
 # Owner: @Nullprotocol_X | ID: 8104850843
-# No Errors, Fully Optimized for Render Free Plan
+# Optimized for Render Free Plan Web Service
 
 import os
 
@@ -25,10 +25,11 @@ if not RENDER_EXTERNAL_URL and BOT_MODE == "webhook":
 PORT = int(os.getenv("PORT", "8080"))
 
 # ============================================
-# 3. DATABASE (FIXED FOR RENDER FREE PLAN)
+# 3. DATABASE (Render free plan ephemeral storage)
 # ============================================
-# IMPORTANT: Free plan me /data folder nahi hota, isliye simple bot.db use karo.
-DB_FILE = os.getenv("DB_FILE", "bot.db")
+# Render free tier me /tmp directory writable hoti hai lekin restart pe data udd jata hai.
+# Permanent storage ke liye external DB (PostgreSQL, Turso) use karo.
+DB_FILE = os.getenv("DB_FILE", "/tmp/bot.db")
 
 # ============================================
 # 4. CACHE CONFIGURATION
@@ -327,3 +328,4 @@ print(f"🔗 Force Join Channels: {len(FORCE_JOIN_CHANNELS)}")
 print(f"💎 Branding: {BRANDING['developer']}")
 print(f"📡 Total APIs Loaded: {len(API_ENDPOINTS)}")
 print(f"⏱️ Self-Ping Interval: {SELF_PING_INTERVAL}s")
+print(f"💾 Database Path: {DB_FILE}")
